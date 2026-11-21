@@ -4,6 +4,7 @@ import json
 import re
 import html
 import urllib.request
+import urllib.error
 import xml.etree.ElementTree as ET
 
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -100,13 +101,24 @@ def send_news(item):
         headers={"Content-Type": "application/json"},
     )
 
-    with urllib.request.urlopen(request, timeout=25) as response:
-        result = json.loads(response.read())
+    try:
+        with urllib.request.urlopen(request, timeout=25) as response:
+            result = json.loads(response.read())
+
+    except urllib.error.HTTPError as error:
+        details = error.read().decode("utf-8", "replace")
+
+        try:
+            details = json.loads(details).get("description", details)
+        except json.JSONDecodeError:
+            pass
+
+        raise RuntimeError(
+            f"Помилка Telegram API ({error.code}): {details}"
+        ) from None
 
     if not result.get("ok"):
         raise RuntimeError("Telegram не прийняв повідомлення")
-
-
 def main():
     if os.path.exists(SEEN_FILE):
         with open(SEEN_FILE, "r", encoding="utf-8") as file:
