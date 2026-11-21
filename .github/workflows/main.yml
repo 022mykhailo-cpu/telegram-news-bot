@@ -26,7 +26,12 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-        run: pwd && ls -la && python ./bot.py
+        run: |
+          echo "START BOT"
+          pwd
+          ls -la
+          python -u ./bot.py
+          echo "BOT FINISHED"
 
       - name: Save published news history
         run: |
