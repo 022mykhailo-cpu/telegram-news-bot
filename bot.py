@@ -104,30 +104,36 @@ def main():
     if os.path.exists(SEEN_FILE):
         with open(SEEN_FILE, "r", encoding="utf-8") as file:
             seen = set(json.load(file))
-        first_run = False
-    else:
+            else:
         seen = set()
-        first_run = True
+
+    first_run = not seen
+
+    all_news = []
 
     for feed in FEEDS:
         try:
             news = get_news(feed)
             print(f"Отримано новин: {len(news)}")
+            all_news.extend(news)
+        except Exception as error:
+            print(f"Помилка RSS {feed}: {error}")
 
-            if first_run:
-                seen.update(item["id"] for item in news)
-                continue
+    if first_run:
+        if all_news:
+            item = all_news[0]
+            send_news(item)
+            seen.add(item["id"])
+            print("Опубліковано:", item["title"])
 
-            for item in reversed(news):
-                if item["id"] in seen:
-                    continue
+        seen.update(item["id"] for item in all_news)
 
+    else:
+        for item in reversed(all_news):
+            if item["id"] not in seen:
                 send_news(item)
                 seen.add(item["id"])
                 print("Опубліковано:", item["title"])
-
-        except Exception as error:
-            print(f"Помилка RSS {feed}: {error}")
 
     with open(SEEN_FILE, "w", encoding="utf-8") as file:
         json.dump(list(seen)[-2000:], file, ensure_ascii=False)
