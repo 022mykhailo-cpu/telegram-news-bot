@@ -45,7 +45,9 @@ def clean_text(value):
 def get_news(url):
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": "Mozilla/5.0 TelegramNewsBot/1.0"}
+        headers={
+            "User-Agent": "Mozilla/5.0 TelegramNewsBot/1.0"
+        }
     )
 
     with urllib.request.urlopen(request, timeout=25) as response:
@@ -107,6 +109,7 @@ def send_news(item):
 
     except urllib.error.HTTPError as error:
         details = error.read().decode("utf-8", "replace")
+
         try:
             details = json.loads(details).get(
                 "description", details
@@ -119,9 +122,7 @@ def send_news(item):
         ) from None
 
     if not result.get("ok"):
-        raise RuntimeError(
-            f"Telegram API: {result}"
-        )
+        raise RuntimeError(f"Telegram API: {result}")
 
     print("Повідомлення успішно відправлено!")
 
@@ -135,7 +136,6 @@ def main():
     else:
         seen = set()
 
-    first_run = not seen
     all_news = []
 
     for feed in FEEDS:
@@ -155,32 +155,24 @@ def main():
             unique_news.append(item)
             collected_ids.add(item["id"])
 
-    all_news = unique_news
+    new_news = [
+        item for item in unique_news
+        if item["id"] not in seen
+    ]
 
-    print("Усього унікальних новин:", len(all_news))
-    print("Вже прочитаних:", sum(
-        1 for item in all_news if item["id"] in seen
-    ))
-    print("Нових:", sum(
-        1 for item in all_news if item["id"] not in seen
-    ))
+    print("Усього новин:", len(unique_news))
+    print("Нових новин:", len(new_news))
 
-    if first_run:
-        if all_news:
-            item = all_news[0]
-            send_news(item)
-            print("Опубліковано:", item["title"])
+    if not new_news:
+        print("Нових новин немає.")
+        return
 
-            seen.update(item["id"] for item in all_news)
-        else:
-            print("Новин для першої публікації немає!")
+    # Публікуємо одну найновішу новину
+    item = new_news[0]
 
-    else:
-        for item in reversed(all_news):
-            if item["id"] not in seen:
-                send_news(item)
-                seen.add(item["id"])
-                print("Опубліковано:", item["title"])
+    send_news(item)
+
+    seen.add(item["id"])
 
     with open(SEEN_FILE, "w", encoding="utf-8") as file:
         json.dump(
@@ -189,9 +181,9 @@ def main():
             ensure_ascii=False
         )
 
+    print("Опубліковано:", item["title"])
     print("Роботу завершено!")
 
 
 if __name__ == "__main__":
     main()
-
