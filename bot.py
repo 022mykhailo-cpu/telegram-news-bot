@@ -107,19 +107,28 @@ def send_news(item):
 
     except urllib.error.HTTPError as error:
         details = error.read().decode("utf-8", "replace")
-
         try:
-            details = json.loads(details).get("description", details)
+            details = json.loads(details).get(
+                "description", details
+            )
         except json.JSONDecodeError:
             pass
 
         raise RuntimeError(
-            f"Помилка Telegram API ({error.code}): {details}"
+            f"Telegram API ({error.code}): {details}"
         ) from None
 
     if not result.get("ok"):
-        raise RuntimeError("Telegram не прийняв повідомлення")
+        raise RuntimeError(
+            f"Telegram API: {result}"
+        )
+
+    print("Повідомлення успішно відправлено!")
+
+
 def main():
+    print("Бот запущено!")
+
     if os.path.exists(SEEN_FILE):
         with open(SEEN_FILE, "r", encoding="utf-8") as file:
             seen = set(json.load(file))
@@ -127,7 +136,6 @@ def main():
         seen = set()
 
     first_run = not seen
-
     all_news = []
 
     for feed in FEEDS:
@@ -147,12 +155,15 @@ def main():
             unique_news.append(item)
             collected_ids.add(item["id"])
 
- 
     all_news = unique_news
 
     print("Усього унікальних новин:", len(all_news))
-    print("Вже прочитаних:", sum(1 for item in all_news if item["id"] in seen))
-    print("Нових:", sum(1 for item in all_news if item["id"] not in seen))
+    print("Вже прочитаних:", sum(
+        1 for item in all_news if item["id"] in seen
+    ))
+    print("Нових:", sum(
+        1 for item in all_news if item["id"] not in seen
+    ))
 
     if first_run:
         if all_news:
@@ -160,7 +171,9 @@ def main():
             send_news(item)
             print("Опубліковано:", item["title"])
 
-        seen.update(item["id"] for item in all_news)
+            seen.update(item["id"] for item in all_news)
+        else:
+            print("Новин для першої публікації немає!")
 
     else:
         for item in reversed(all_news):
@@ -170,4 +183,15 @@ def main():
                 print("Опубліковано:", item["title"])
 
     with open(SEEN_FILE, "w", encoding="utf-8") as file:
-        json.dump(list(seen)[-2000:], file, ensure_ascii=False)
+        json.dump(
+            list(seen)[-2000:],
+            file,
+            ensure_ascii=False
+        )
+
+    print("Роботу завершено!")
+
+
+if __name__ == "__main__":
+    main()
+
