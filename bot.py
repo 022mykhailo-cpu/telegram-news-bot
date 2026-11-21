@@ -147,7 +147,12 @@ def main():
             unique_news.append(item)
             collected_ids.add(item["id"])
 
+ 
     all_news = unique_news
+
+    print("Усього унікальних новин:", len(all_news))
+    print("Вже прочитаних:", sum(1 for item in all_news if item["id"] in seen))
+    print("Нових:", sum(1 for item in all_news if item["id"] not in seen))
 
     if first_run:
         if all_news:
@@ -166,7 +171,3 @@ def main():
 
     with open(SEEN_FILE, "w", encoding="utf-8") as file:
         json.dump(list(seen)[-2000:], file, ensure_ascii=False)
-
-
-if __name__ == "__main__":
-    main()
